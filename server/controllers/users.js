@@ -1,4 +1,5 @@
 const User = require("../models/users");
+const System = require("../models/system");
 const bcryptjs = require("bcryptjs");
 
 module.exports.register = async (req, res, next) => {
@@ -16,6 +17,18 @@ module.exports.register = async (req, res, next) => {
       username,
       password: hashedPassword,
     });
+    const SystemInfo = await User.findOne({ username: "SystemInfo" });
+    console.log(" SystemInfo._id", SystemInfo._id);
+    console.log(" user._id", user._id);
+    await User.findByIdAndUpdate(
+      user._id,
+      {
+        $addToSet: {
+          friends: SystemInfo._id,
+        },
+      },
+      { new: true }
+    );
     const userNopassword = await User.findOne({ username }, { password: 0 }); //返回的数据剔除password
     return res.json({ status: true, user: userNopassword }); //根据网页的storage显示，password并未被剔除，这里是有一个bug
   } catch (ex) {
@@ -71,6 +84,91 @@ module.exports.getAllUsers = async (req, res, next) => {
       "_id",
     ]);
     return res.json(users);
+  } catch (ex) {
+    next(ex);
+  }
+};
+
+module.exports.getFriends = async (req, res, next) => {
+  try {
+    const data = await User.findOne({ _id: req.params.id }).select(["friends"]);
+    const friends = data.friends;
+    console.log("friends", friends);
+    const result = [];
+    for (let i = 0; i < friends.length; i++) {
+      const x = await User.findOne({ _id: friends[i] }).select([
+        "email",
+        "username",
+        "avatarImage",
+        "_id",
+      ]);
+      result.push(x);
+    }
+    console.log("friends", friends);
+    return res.json(result);
+  } catch (ex) {
+    next(ex);
+  }
+};
+
+module.exports.beFriends = async (req, res, next) => {
+  try {
+    const { userId, friendId, userName } = req.body;
+    console.log("userId", userId);
+    console.log("friendId", friendId);
+    console.log("userName", userName);
+
+    const sender = friendId;
+    const to = userName;
+    await User.findByIdAndUpdate(
+      userId,
+      {
+        $addToSet: {
+          friends: friendId,
+        },
+      },
+      { new: true }
+    );
+    await User.findByIdAndUpdate(
+      friendId,
+      {
+        $addToSet: {
+          friends: userId,
+        },
+      },
+      { new: true }
+    );
+
+    console.log("sender", sender);
+    console.log("to", to);
+    await System.deleteOne({ info: "friendRequest", body: { sender, to } });
+
+    return res.json({
+      status: true,
+      msg: "Succeeded in adding a friend",
+    });
+  } catch (ex) {
+    next(ex);
+  }
+};
+
+module.exports.notBeFriends = async (req, res, next) => {
+  try {
+    const { userId, friendId, userName } = req.body;
+    console.log("userId", userId);
+    console.log("friendId", friendId);
+    console.log("userName", userName);
+
+    const sender = friendId;
+    const to = userName;
+    console.log("sender", sender);
+    console.log("to", to);
+    await System.deleteOne({ info: "friendRequest", body: { sender, to } });
+
+    return res.json({
+      status: true,
+      msg: "Succeeded in rejecting the friend request",
+    });
   } catch (ex) {
     next(ex);
   }

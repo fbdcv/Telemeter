@@ -3,11 +3,15 @@ import React, { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import ChatInput from "./ChatInput";
 import {
   sendMessageRoute,
   recieveMessageRoute,
   getFriendRequestRoute,
+  beFriendsRoute,
+  notBeFriendsRoute,
 } from "../api/index";
 
 const ChatContainer = ({ currentUser, currentChat, socket }) => {
@@ -17,6 +21,14 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
 
   //一个变量
   const scrollRef = useRef();
+
+  const toastOptions = {
+    position: "bottom-right",
+    autoClose: 8000,
+    pauseOnHover: true,
+    draggable: true,
+    theme: "dark",
+  };
 
   //当选择对话的时候从数据库拉取历史对话数据
   useEffect(() => {
@@ -95,17 +107,43 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
     }
   };
 
-  const handleAccept = () => {
+  const handleAccept = async (message) => {
     //发送HTTP请求到数据库
     //将目标用户注册为好友
     //删除system数据库中的相关数据
     //使用toast显示操作成功
+    console.log("message", message);
+    const res = await axios.post(`${beFriendsRoute}`, {
+      userId: currentUser._id,
+      friendId: message.data._id,
+      userName: currentUser.username,
+    });
+    console.log("res ", res);
+    const data = res.data;
+    if (!data.status) {
+      toast.error(data.msg, toastOptions);
+    } else {
+      toast.success(data.msg, toastOptions);
+    }
   };
 
-  const handleReject = () => {
+  const handleReject = async (message) => {
     //发送HTTP请求到数据库
     //删除system数据库中的相关数据
     //使用toast显示操作成功
+    console.log("message", message);
+    const res = await axios.post(`${notBeFriendsRoute}`, {
+      userId: currentUser._id,
+      friendId: message.data._id,
+      userName: currentUser.username,
+    });
+    console.log("res ", res);
+    const data = res.data;
+    if (!data.status) {
+      toast.error(data.msg, toastOptions);
+    } else {
+      toast.success(data.msg, toastOptions);
+    }
   };
 
   return (
@@ -143,10 +181,16 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
                       <span>好友请求</span>
                     </div>
                     <div className="buttons">
-                      <button className="accept" onClick={handleAccept}>
+                      <button
+                        className="accept"
+                        onClick={() => handleAccept(message)}
+                      >
                         接受
                       </button>
-                      <button className="reject" onClick={handleReject}>
+                      <button
+                        className="reject"
+                        onClick={() => handleReject(message)}
+                      >
                         拒绝
                       </button>
                     </div>
@@ -171,6 +215,7 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
       </div>
 
       <ChatInput handleSendMsg={handleSendMsg} />
+      <ToastContainer />
     </Container>
   );
 };
@@ -275,20 +320,28 @@ const Container = styled.div`
         .accept {
           padding: 10px;
           margin-left: 10px;
-          /* background-color: #fff; */
+          background-color: #fff;
           border-radius: 5px;
           border: 1px solid #aaa;
           color: #333;
           cursor: pointer;
+          &:active {
+            background-color: gray;
+            color: white;
+          }
         }
         .reject {
           padding: 10px;
           margin-left: 10px;
-          /* background-color: #fff; */
+          background-color: #fff;
           border-radius: 5px;
           border: 1px solid #aaa;
           color: #333;
           cursor: pointer;
+          &:active {
+            background-color: gray;
+            color: white;
+          }
         }
       }
     }

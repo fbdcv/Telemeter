@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { io } from "socket.io-client";
-import { allUsersRoute, host } from "../api/index";
+import { allUsersRoute, host, friendsRoute } from "../api/index";
 import Contacts from "../components/Contacts";
 import Welcome from "../components/Welcome";
 import ChatContainer from "../components/ChatContainer";
@@ -28,12 +28,14 @@ export default function Chat() {
     func();
   }, []);
 
-  //判断用户是否有头像
+  //判断用户是否有头像,请求好友数据
   useEffect(() => {
     async function func() {
       if (currentUser) {
         if (currentUser.isAvatarImageSet) {
-          const data = await axios.get(`${allUsersRoute}/${currentUser._id}`);
+          // const data = await axios.get(`${allUsersRoute}/${currentUser._id}`);
+          const data = await axios.get(`${friendsRoute}/${currentUser._id}`);
+          console.log("friends", data.data);
           setContacts(data.data);
         } else {
           navigate("/setAvatar");
