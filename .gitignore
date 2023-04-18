@@ -1,0 +1,8 @@
+# Ignore node modules folders
+node_modules/
+
+# Ignore server node modules
+server/node_modules/
+
+# Ignore client node modules
+client/node_modules/
