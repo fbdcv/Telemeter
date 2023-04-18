@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const System = require("../models/system");
 const User = require("../models/users");
 
@@ -5,11 +6,34 @@ module.exports.friendRequest = async (req, res, next) => {
   try {
     const { sender, to } = req.body;
     const toCheck = await User.findOne({ username: to });
+    console.log("to ", to);
+    console.log("sender ", sender);
+    console.log("toCheck ", toCheck);
     const hasCheck = await System.findOne({ body: { sender, to } });
     if (!toCheck) {
       return res.json({
         status: false,
         msg: "The requested user does not exist",
+      });
+    }
+    //如果to是自己或者好友或者SystemInfo回复错误
+    if (sender === toCheck._id.toString()) {
+      return res.json({
+        status: false,
+        msg: "The target of a friend request cannot be yourself",
+      });
+    }
+    if (to === "SystemInfo") {
+      return res.json({
+        status: false,
+        msg: "The target of a friend request cannot be SystemInfo",
+      });
+    }
+    //如果to的对象是自己好友
+    if (false) {
+      return res.json({
+        status: false,
+        msg: "The target of a friend request has been your friend",
       });
     }
     if (hasCheck) {
@@ -35,10 +59,19 @@ module.exports.friendRequest = async (req, res, next) => {
 module.exports.getFriendRequest = async (req, res, next) => {
   try {
     const { username } = req.params;
-    const data = await System.find({
+    //查询好友请求
+    const friendRequestData = await System.find({
       info: "friendRequest",
       "body.to": username,
     });
+    //处理要响应的数据
+    const data = [];
+    for (let i = 0; i < friendRequestData.length; i++) {
+      const e = await User.findOne({ _id: friendRequestData[i].body.sender });
+      const x = { info: "friendRequest", data: e };
+      data.push(x);
+    }
+
     res.json(data);
   } catch (ex) {
     next(ex);

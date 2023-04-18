@@ -28,6 +28,8 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
         //打印响应信息
         console.log("res", res);
         console.log("res.data", res.data);
+        //复用messages
+        setMessages(res.data);
       } else {
         const response = await axios.post(recieveMessageRoute, {
           from: currentUser._id,
@@ -39,37 +41,21 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
     func();
   }, [currentChat]);
 
-  //点击提交按钮，将对话内容推送到数据库，并推送socket
-  // 在这个函数中可以获取到满足聊天的三要素: from(currentUser) to(currentChat) message(msg)
-  const handleSendMsg = async (msg) => {
-    socket.current.emit("send-msg", {
-      to: currentChat._id,
-      from: currentUser._id,
-      msg,
-    });
-    await axios.post(sendMessageRoute, {
-      from: currentUser._id,
-      to: currentChat._id,
-      message: msg,
-    });
-
-    const msgs = [...messages];
-    msgs.push({ fromSelf: true, message: msg });
-    setMessages(msgs);
-  };
-
   //监听数据并保证只启用一个监听
   useEffect(() => {
     if (!runOne) {
-      if (socket.current) {
-        socket.current.on("msg-recieve", (data) => {
-          const { from, msg } = data;
-          // console.log("from ", from);
-          console.log("currentChat._id ", currentChat._id); //这个东西
-          // console.log("from===currentChat._id ", from === currentChat._id);
-          if (from === currentChat._id)
-            setArrivalMessage({ fromSelf: false, message: msg, from });
-        });
+      if (currentChat.username === "SystemInfo") {
+      } else {
+        if (socket.current) {
+          socket.current.on("msg-recieve", (data) => {
+            const { from, msg } = data;
+            // console.log("from ", from);
+            console.log("currentChat._id ", currentChat._id); //这个东西
+            // console.log("from===currentChat._id ", from === currentChat._id);
+            if (from === currentChat._id)
+              setArrivalMessage({ fromSelf: false, message: msg, from });
+          });
+        }
       }
       setRunOne(true);
     }
@@ -87,6 +73,41 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  //点击提交按钮，将对话内容推送到数据库，并推送socket
+  // 在这个函数中可以获取到满足聊天的三要素: from(currentUser) to(currentChat) message(msg)
+  const handleSendMsg = async (msg) => {
+    if (currentChat.username === "SystemInfo") {
+    } else {
+      socket.current.emit("send-msg", {
+        to: currentChat._id,
+        from: currentUser._id,
+        msg,
+      });
+      await axios.post(sendMessageRoute, {
+        from: currentUser._id,
+        to: currentChat._id,
+        message: msg,
+      });
+
+      const msgs = [...messages];
+      msgs.push({ fromSelf: true, message: msg });
+      setMessages(msgs);
+    }
+  };
+
+  const handleAccept = () => {
+    //发送HTTP请求到数据库
+    //将目标用户注册为好友
+    //删除system数据库中的相关数据
+    //使用toast显示操作成功
+  };
+
+  const handleReject = () => {
+    //发送HTTP请求到数据库
+    //删除system数据库中的相关数据
+    //使用toast显示操作成功
+  };
+
   return (
     <Container>
       <div className="chat-header">
@@ -97,6 +118,7 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
               alt=""
             />
           </div>
+          {console.log("messages ", messages)}
           <div className="username">
             <h3>{currentChat.username}</h3>
           </div>
@@ -107,15 +129,42 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
         {messages.map((message) => {
           return (
             <div ref={scrollRef} key={uuidv4()}>
-              <div
-                className={`message ${
-                  message.fromSelf ? "sended" : "recieved"
-                }`}
-              >
-                <div className="content ">
-                  <p>{message.message}</p>
+              {currentChat.username === "SystemInfo" &&
+                message.info === "friendRequest" && (
+                  <div className="friend-request-box">
+                    <div className="user-info">
+                      <img
+                        src={`data:image/svg+xml;base64,${message.data.avatarImage}`}
+                        alt="User Avatar"
+                      />
+                      <span className="username">{message.data.username}</span>
+                    </div>
+                    <div className="text-box">
+                      <span>好友请求</span>
+                    </div>
+                    <div className="buttons">
+                      <button className="accept" onClick={handleAccept}>
+                        接受
+                      </button>
+                      <button className="reject" onClick={handleReject}>
+                        拒绝
+                      </button>
+                    </div>
+                  </div>
+                )}
+              {currentChat.username === "SystemInfo" &&
+                message.info !== "friendRequest" && <div></div>}
+              {currentChat.username !== "SystemInfo" && (
+                <div
+                  className={`message ${
+                    message.fromSelf ? "sended" : "recieved"
+                  }`}
+                >
+                  <div className="content ">
+                    <p>{message.message}</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           );
         })}
@@ -194,6 +243,53 @@ const Container = styled.div`
       justify-content: flex-start;
       .content {
         background-color: #9900ff20;
+      }
+    }
+    .friend-request-box {
+      width: 60%;
+      margin: 0 auto;
+      border: 1px solid #ccc;
+      background-color: #4f04ff21;
+      padding: 20px;
+      .user-info {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+        img {
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          margin-right: 10px;
+        }
+        .username {
+          color: white;
+        }
+      }
+      .text-box {
+        margin-bottom: 10px;
+        span {
+          color: white;
+        }
+      }
+      .buttons {
+        .accept {
+          padding: 10px;
+          margin-left: 10px;
+          /* background-color: #fff; */
+          border-radius: 5px;
+          border: 1px solid #aaa;
+          color: #333;
+          cursor: pointer;
+        }
+        .reject {
+          padding: 10px;
+          margin-left: 10px;
+          /* background-color: #fff; */
+          border-radius: 5px;
+          border: 1px solid #aaa;
+          color: #333;
+          cursor: pointer;
+        }
       }
     }
   }

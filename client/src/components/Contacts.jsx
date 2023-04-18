@@ -63,6 +63,7 @@ export default function Contacts({ contacts, changeChat }) {
         // alert(data.msg);
         toast.error(data.msg, toastOptions);
       } else {
+        toast.success(data.msg, toastOptions);
         //启动socket转发请求数据
       }
 
