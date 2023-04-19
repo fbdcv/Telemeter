@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-
 import styled from "styled-components";
+import UIfx from "uifx";
+import senderAudio from "../assets/can.mp3";
+import acceptAudio from "../assets/can2.mp3";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
 import { ToastContainer, toast } from "react-toastify";
@@ -21,6 +23,15 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
 
   //一个变量
   const scrollRef = useRef();
+  const senderBell = new UIfx(senderAudio, {
+    volume: 0.4, // number between 0.0 ~ 1.0
+    throttleMs: 100,
+  });
+
+  const acceptBell = new UIfx(acceptAudio, {
+    volume: 0.4, // number between 0.0 ~ 1.0
+    throttleMs: 100,
+  });
 
   const toastOptions = {
     position: "bottom-right",
@@ -57,6 +68,15 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
   useEffect(() => {
     if (!runOne) {
       if (currentChat.username === "SystemInfo") {
+        console.log("currentChat.username === SystemInfo");
+        if (socket.current) {
+          console.log("socket在线");
+          socket.current.on("system_info", (sysinfo) => {
+            const { info, data } = sysinfo;
+            console.log("infor data ", sysinfo);
+            setArrivalMessage({ info, data });
+          });
+        }
       } else {
         if (socket.current) {
           socket.current.on("msg-recieve", (data) => {
@@ -64,8 +84,8 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
             // console.log("from ", from);
             console.log("currentChat._id ", currentChat._id); //这个东西
             // console.log("from===currentChat._id ", from === currentChat._id);
-            if (from === currentChat._id)
-              setArrivalMessage({ fromSelf: false, message: msg, from });
+            // if (from === currentChat._id)
+            setArrivalMessage({ fromSelf: false, message: msg, from });
           });
         }
       }
@@ -75,8 +95,16 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
 
   //如果通过socket获取到了数据，就将其追加到messages状态
   useEffect(() => {
-    if (arrivalMessage && arrivalMessage.from === currentChat._id) {
-      setMessages((prev) => [...prev, arrivalMessage]);
+    if (currentChat.username === "SystemInfo") {
+      if (arrivalMessage) {
+        acceptBell.play();
+        setMessages((prev) => [...prev, arrivalMessage]);
+      }
+    } else {
+      if (arrivalMessage && arrivalMessage.from === currentChat._id) {
+        acceptBell.play();
+        setMessages((prev) => [...prev, arrivalMessage]);
+      }
     }
   }, [arrivalMessage]);
 
@@ -88,6 +116,7 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
   //点击提交按钮，将对话内容推送到数据库，并推送socket
   // 在这个函数中可以获取到满足聊天的三要素: from(currentUser) to(currentChat) message(msg)
   const handleSendMsg = async (msg) => {
+    senderBell.play();
     if (currentChat.username === "SystemInfo") {
     } else {
       socket.current.emit("send-msg", {
@@ -117,6 +146,7 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
       userId: currentUser._id,
       friendId: message.data._id,
       userName: currentUser.username,
+      friendName: message.data.username,
     });
     console.log("res ", res);
     const data = res.data;
@@ -124,6 +154,15 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
       toast.error(data.msg, toastOptions);
     } else {
       toast.success(data.msg, toastOptions);
+      socket.current.emit("befriends", {
+        toName: message.data.username,
+        toId: message.data._id,
+        friend: currentUser,
+      });
+      setTimeout(() => {
+        //刷新页面
+        window.location.reload();
+      }, 500);
     }
   };
 
@@ -143,6 +182,10 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
       toast.error(data.msg, toastOptions);
     } else {
       toast.success(data.msg, toastOptions);
+      setTimeout(() => {
+        //刷新页面
+        window.location.reload();
+      }, 500);
     }
   };
 
@@ -281,13 +324,15 @@ const Container = styled.div`
     .sended {
       justify-content: flex-end;
       .content {
-        background-color: #4f04ff21;
+        /* background-color: #4f04ff21; */
+        background-color: #000080;
       }
     }
     .recieved {
       justify-content: flex-start;
       .content {
-        background-color: #9900ff20;
+        /* background-color: #9900ff20; */
+        background-color: #56368e;
       }
     }
     .friend-request-box {

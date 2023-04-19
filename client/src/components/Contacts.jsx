@@ -9,11 +9,13 @@ import Avatar from "./Avatar";
 import { BiUserPlus } from "react-icons/bi";
 import { friendRequestRoute } from "../api/index";
 
-export default function Contacts({ contacts, changeChat }) {
+export default function Contacts({ contacts, changeChat, socket, addContact }) {
   const [currentUserName, setCurrentUserName] = useState(undefined); //当前用户名
   const [currentUserImage, setCurrentUserImage] = useState(undefined); //当前用户头像
   const [currentSelected, setCurrentSelected] = useState(undefined); //选择的对话，存储的值为数组index
   const [showSearch, setShowSearch] = useState(false); //是否显示搜索框
+
+  const [runOne, setRunOne] = useState(false); //让socketon befriends 只运行一次的标志变量
 
   const inputRef = useRef(null); // 输入框的引用
 
@@ -41,6 +43,18 @@ export default function Contacts({ contacts, changeChat }) {
     }
   }, [showSearch]);
 
+  useEffect(() => {
+    if (socket.current) {
+      if (!runOne) {
+        socket.current.on("befriends", (friend) => {
+          console.log("显示添加的friend", friend);
+          addContact(friend);
+        });
+      }
+      setRunOne(true);
+    }
+  });
+
   const changeCurrentChat = (index, contact) => {
     setCurrentSelected(index);
     changeChat(contact);
@@ -65,6 +79,16 @@ export default function Contacts({ contacts, changeChat }) {
       } else {
         toast.success(data.msg, toastOptions);
         //启动socket转发请求数据
+        socket.current.emit("system_info", {
+          info: "friendRequest",
+          data: user,
+          to: data.toId,
+        });
+        console.log("socket send ", {
+          info: "friendRequest",
+          data: user,
+          to: data.toId,
+        });
       }
 
       e.target.value = "";

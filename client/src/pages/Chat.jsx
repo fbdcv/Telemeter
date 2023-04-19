@@ -50,6 +50,7 @@ export default function Chat() {
     if (currentUser) {
       socket.current = io(host);
       socket.current.emit("add-user", currentUser._id);
+      return () => socket.current.disconnect();
     }
   }, [currentUser]);
 
@@ -57,12 +58,21 @@ export default function Chat() {
     setCurrentChat(chat);
   };
 
+  const handleAddContact = (contact) => {
+    setContacts([...contacts, contact]);
+  };
+
   return (
     <>
       <Container>
         <div className="container">
           {/* 注意组件参数 */}
-          <Contacts contacts={contacts} changeChat={handleChatChange} />
+          <Contacts
+            contacts={contacts}
+            changeChat={handleChatChange}
+            addContact={handleAddContact}
+            socket={socket}
+          />
 
           {currentChat === undefined ? (
             <Welcome />
