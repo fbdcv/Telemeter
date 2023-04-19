@@ -43,11 +43,12 @@ export default function Contacts({ contacts, changeChat, socket, addContact }) {
     }
   }, [showSearch]);
 
+  //启用socket监听，监听befriend
   useEffect(() => {
     if (socket.current) {
       if (!runOne) {
         socket.current.on("befriends", (friend) => {
-          console.log("显示添加的friend", friend);
+          // console.log("显示添加的friend", friend);
           addContact(friend);
         });
       }
@@ -84,11 +85,11 @@ export default function Contacts({ contacts, changeChat, socket, addContact }) {
           data: user,
           to: data.toId,
         });
-        console.log("socket send ", {
-          info: "friendRequest",
-          data: user,
-          to: data.toId,
-        });
+        // console.log("socket send ", {
+        //   info: "friendRequest",
+        //   data: user,
+        //   to: data.toId,
+        // });
       }
 
       e.target.value = "";

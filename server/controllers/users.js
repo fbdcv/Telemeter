@@ -24,7 +24,7 @@ module.exports.register = async (req, res, next) => {
       user._id,
       {
         $addToSet: {
-          friends: SystemInfo._id,
+          friends: SystemInfo._id.toString(),
         },
       },
       { new: true }
@@ -93,7 +93,7 @@ module.exports.getFriends = async (req, res, next) => {
   try {
     const data = await User.findOne({ _id: req.params.id }).select(["friends"]);
     const friends = data.friends;
-    console.log("friends", friends);
+    // console.log("friends", friends);
     const result = [];
     for (let i = 0; i < friends.length; i++) {
       const x = await User.findOne({ _id: friends[i] }).select([
@@ -104,7 +104,7 @@ module.exports.getFriends = async (req, res, next) => {
       ]);
       result.push(x);
     }
-    console.log("friends", friends);
+    // console.log("friends", friends);
     return res.json(result);
   } catch (ex) {
     next(ex);
@@ -113,10 +113,10 @@ module.exports.getFriends = async (req, res, next) => {
 
 module.exports.beFriends = async (req, res, next) => {
   try {
-    const { userId, friendId, userName } = req.body;
-    console.log("userId", userId);
-    console.log("friendId", friendId);
-    console.log("userName", userName);
+    const { userId, friendId, userName, friendName } = req.body;
+    // console.log("userId", userId);
+    // console.log("friendId", friendId);
+    // console.log("userName", userName);
 
     const sender = friendId;
     const to = userName;
@@ -141,8 +141,14 @@ module.exports.beFriends = async (req, res, next) => {
 
     console.log("sender", sender);
     console.log("to", to);
-    await System.deleteOne({ info: "friendRequest", body: { sender, to } });
-
+    await System.deleteOne({
+      info: "friendRequest",
+      body: { sender: friendId, to: userName },
+    });
+    await System.deleteOne({
+      info: "friendRequest",
+      body: { sender: userId, to: friendName },
+    });
     return res.json({
       status: true,
       msg: "Succeeded in adding a friend",
@@ -155,14 +161,14 @@ module.exports.beFriends = async (req, res, next) => {
 module.exports.notBeFriends = async (req, res, next) => {
   try {
     const { userId, friendId, userName } = req.body;
-    console.log("userId", userId);
-    console.log("friendId", friendId);
-    console.log("userName", userName);
+    // console.log("userId", userId);
+    // console.log("friendId", friendId);
+    // console.log("userName", userName);
 
     const sender = friendId;
     const to = userName;
-    console.log("sender", sender);
-    console.log("to", to);
+    // console.log("sender", sender);
+    // console.log("to", to);
     await System.deleteOne({ info: "friendRequest", body: { sender, to } });
 
     return res.json({

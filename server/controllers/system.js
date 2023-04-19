@@ -6,10 +6,14 @@ module.exports.friendRequest = async (req, res, next) => {
   try {
     const { sender, to } = req.body;
     const toCheck = await User.findOne({ username: to });
-    console.log("to ", to);
-    console.log("sender ", sender);
-    console.log("toCheck ", toCheck);
+    // console.log("to ", to);
+    // console.log("sender ", sender);
+    // console.log("toCheck ", toCheck);
     const hasCheck = await System.findOne({ body: { sender, to } });
+    const isself = await User.findOne({
+      _id: sender,
+      friends: toCheck._id.toString(),
+    });
     if (!toCheck) {
       return res.json({
         status: false,
@@ -30,7 +34,7 @@ module.exports.friendRequest = async (req, res, next) => {
       });
     }
     //如果to的对象是自己好友
-    if (false) {
+    if (isself) {
       return res.json({
         status: false,
         msg: "The target of a friend request has been your friend",
@@ -45,7 +49,9 @@ module.exports.friendRequest = async (req, res, next) => {
     res.json({
       status: true,
       msg: "The request has been sent",
+      toId: toCheck._id.toString(),
     });
+    // console.log("toId", toCheck._id.toString());
     await System.create({
       info: "friendRequest",
       body: { sender, to },

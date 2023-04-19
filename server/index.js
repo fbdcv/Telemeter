@@ -37,6 +37,8 @@ const io = socket(server, {
     // origin: "*",
     credentials: true,
   },
+  pingInterval: 10000, // 每隔 10 秒发送一个心跳包
+  pingTimeout: 120000, // 设置 2 分钟没有收到任何数据时判断客户端离线
 });
 
 //创建映射，存储在线用户对应的socket的id
@@ -54,6 +56,26 @@ io.on("connection", (socket) => {
     //如果用户在线
     if (sendUserSocket) {
       socket.to(sendUserSocket).emit("msg-recieve", data);
+    }
+  });
+  socket.on("system_info", (sysinfo) => {
+    const sendUserSocket = onlineUsers.get(sysinfo.to);
+    const { info, data } = sysinfo;
+    //如果用户在线
+    if (sendUserSocket) {
+      socket.to(sendUserSocket).emit("system_info", { info, data });
+    }
+  });
+  socket.on("befriends", (data) => {
+    const { toId, toName, friend } = data;
+    const sendUserSocket = onlineUsers.get(toId);
+    console.log("toId ,toName", data);
+    //如果用户在线
+    if (sendUserSocket) {
+      //通知客户端刷新好友列表
+      // console.log("通知客户端刷新好友列表");
+      // console.log("socket 中转friend ", friend);
+      socket.to(sendUserSocket).emit("befriends", friend);
     }
   });
 });

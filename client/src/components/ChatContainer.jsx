@@ -176,7 +176,7 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
       friendId: message.data._id,
       userName: currentUser.username,
     });
-    console.log("res ", res);
+    // console.log("res ", res);
     const data = res.data;
     if (!data.status) {
       toast.error(data.msg, toastOptions);
