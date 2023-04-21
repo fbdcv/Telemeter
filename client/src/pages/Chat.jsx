@@ -35,7 +35,7 @@ export default function Chat() {
         if (currentUser.isAvatarImageSet) {
           // const data = await axios.get(`${allUsersRoute}/${currentUser._id}`);
           const data = await axios.get(`${friendsRoute}/${currentUser._id}`);
-          console.log("friends", data.data);
+          // console.log("friends", data.data);
           setContacts(data.data);
         } else {
           navigate("/setAvatar");

@@ -10,14 +10,16 @@ module.exports.friendRequest = async (req, res, next) => {
     // console.log("sender ", sender);
     // console.log("toCheck ", toCheck);
     const hasCheck = await System.findOne({ body: { sender, to } });
-    const isself = await User.findOne({
-      _id: sender,
-      friends: toCheck._id.toString(),
-    });
+    let isself = null;
     if (!toCheck) {
       return res.json({
         status: false,
         msg: "The requested user does not exist",
+      });
+    } else {
+      isself = await User.findOne({
+        _id: sender,
+        friends: toCheck._id.toString(),
       });
     }
     //如果to是自己或者好友或者SystemInfo回复错误

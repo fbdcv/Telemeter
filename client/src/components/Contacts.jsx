@@ -51,8 +51,8 @@ export default function Contacts({ contacts, changeChat, socket, addContact }) {
           // console.log("显示添加的friend", friend);
           addContact(friend);
         });
+        setRunOne(true);
       }
-      setRunOne(true);
     }
   });
 
@@ -65,7 +65,7 @@ export default function Contacts({ contacts, changeChat, socket, addContact }) {
     setShowSearch(!showSearch);
   };
   const handleEnter = async (e) => {
-    if (e.keyCode == 13) {
+    if (e.keyCode === 13) {
       // alert(`enter ${e.target.value}`);
       //这里处理搜索到的内容
       const user = await JSON.parse(localStorage.getItem("profile"));
@@ -73,7 +73,7 @@ export default function Contacts({ contacts, changeChat, socket, addContact }) {
         sender: user._id,
         to: e.target.value,
       });
-      console.log("res", data);
+      // console.log("res", data);
       if (!data.status) {
         // alert(data.msg);
         toast.error(data.msg, toastOptions);
@@ -85,11 +85,6 @@ export default function Contacts({ contacts, changeChat, socket, addContact }) {
           data: user,
           to: data.toId,
         });
-        // console.log("socket send ", {
-        //   info: "friendRequest",
-        //   data: user,
-        //   to: data.toId,
-        // });
       }
 
       e.target.value = "";

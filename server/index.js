@@ -49,6 +49,11 @@ io.on("connection", (socket) => {
   socket.on("add-user", (userId) => {
     onlineUsers.set(userId, socket.id);
   });
+  // console.log("------------------");
+  // for (let [key, value] of global.onlineUsers) {
+  //   console.log(`${key} = ${value}`);
+  // }
+  // console.log("------------------");
 
   //服务器中转数据 data中有三个属性from,to,msg
   socket.on("send-msg", (data) => {
@@ -61,6 +66,10 @@ io.on("connection", (socket) => {
   socket.on("system_info", (sysinfo) => {
     const sendUserSocket = onlineUsers.get(sysinfo.to);
     const { info, data } = sysinfo;
+    // console.log("to", sysinfo.to);
+    // console.log("info", sysinfo.info);
+    // console.log("data", sysinfo.data);
+
     //如果用户在线
     if (sendUserSocket) {
       socket.to(sendUserSocket).emit("system_info", { info, data });
@@ -69,7 +78,7 @@ io.on("connection", (socket) => {
   socket.on("befriends", (data) => {
     const { toId, toName, friend } = data;
     const sendUserSocket = onlineUsers.get(toId);
-    console.log("toId ,toName", data);
+    // console.log("toId ,toName", data);
     //如果用户在线
     if (sendUserSocket) {
       //通知客户端刷新好友列表

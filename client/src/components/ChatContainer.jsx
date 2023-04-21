@@ -141,14 +141,14 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
     //将目标用户注册为好友
     //删除system数据库中的相关数据
     //使用toast显示操作成功
-    console.log("message", message);
+    // console.log("message", message);
     const res = await axios.post(`${beFriendsRoute}`, {
       userId: currentUser._id,
       friendId: message.data._id,
       userName: currentUser.username,
       friendName: message.data.username,
     });
-    console.log("res ", res);
+    // console.log("res ", res);
     const data = res.data;
     if (!data.status) {
       toast.error(data.msg, toastOptions);
@@ -162,7 +162,7 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
       setTimeout(() => {
         //刷新页面
         window.location.reload();
-      }, 500);
+      }, 1500);
     }
   };
 
@@ -199,12 +199,10 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
               alt=""
             />
           </div>
-          {console.log("messages ", messages)}
           <div className="username">
             <h3>{currentChat.username}</h3>
           </div>
         </div>
-        {/* <Logout /> */}
       </div>
       <div className="chat-messages">
         {messages.map((message) => {
@@ -338,7 +336,7 @@ const Container = styled.div`
     .friend-request-box {
       width: 60%;
       margin: 0 auto;
-      border: 1px solid #ccc;
+      border: 1px solid #163bcb;
       background-color: #4f04ff21;
       padding: 20px;
       .user-info {

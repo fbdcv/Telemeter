@@ -139,8 +139,8 @@ module.exports.beFriends = async (req, res, next) => {
       { new: true }
     );
 
-    console.log("sender", sender);
-    console.log("to", to);
+    // console.log("sender", sender);
+    // console.log("to", to);
     await System.deleteOne({
       info: "friendRequest",
       body: { sender: friendId, to: userName },
