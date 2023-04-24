@@ -240,7 +240,7 @@ const Container = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 2rem;
+    gap: 0.9rem;
     .avatar {
       img {
         height: 4rem;

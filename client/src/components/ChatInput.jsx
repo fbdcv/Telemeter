@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { BsEmojiSmileFill } from "react-icons/bs";
 import { IoMdSend } from "react-icons/io";
+import { BsFillCameraVideoFill } from "react-icons/bs";
 import styled from "styled-components";
 import Picker from "emoji-picker-react";
 
@@ -47,6 +48,9 @@ export default function ChatInput({ handleSendMsg }) {
         <button type="submit">
           <IoMdSend />
         </button>
+        <button>
+          <BsFillCameraVideoFill />
+        </button>
       </form>
     </Container>
   );
@@ -55,7 +59,7 @@ export default function ChatInput({ handleSendMsg }) {
 const Container = styled.div`
   display: grid;
   align-items: center;
-  grid-template-columns: 8% 92%;
+  grid-template-columns: 5% 95%;
   background-color: #080420;
   padding: 0 2rem;
   @media screen and (min-width: 720px) and (max-width: 1080px) {
@@ -104,19 +108,26 @@ const Container = styled.div`
   }
   .input-container {
     width: 100%;
-    border-radius: 2rem;
+    border-radius: 0.3rem;
     display: flex;
     align-items: center;
-    gap: 2rem;
-    background-color: #ffffff34;
+    gap: 0.8rem;
+    /* background-color: #ffffff34; */
     input {
-      width: 90%;
+      width: 85%;
       height: 60%;
-      background-color: transparent;
+      /* background-color: transparent; */
+      font-size: 1rem; /* 字体大小 */
+      padding: 0.9rem 0rem; /* 上下内边距和左右内边距 */
+      padding-left: 1rem;
+      box-sizing: border-box; /* 确保内外边距和宽度的准确计算 */
+      align-items: center;
+      display: flex;
+      gap: 2rem;
+      border-radius: 0.8rem;
+      background-color: #ffffff34;
       color: white;
       border: none;
-      padding-left: 1rem;
-      font-size: 1.2rem;
 
       &::selection {
         background-color: #9a86f3;
@@ -126,8 +137,8 @@ const Container = styled.div`
       }
     }
     button {
-      padding: 0.3rem 2rem;
-      border-radius: 2rem;
+      padding: 0.25rem 0.8rem;
+      border-radius: 0.5rem;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -141,7 +152,7 @@ const Container = styled.div`
       }
       svg {
         font-size: 2rem;
-        color: white;
+        color: #fdfdfd;
       }
     }
   }
