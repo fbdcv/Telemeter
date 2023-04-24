@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import axios from "axios";
-import { Buffer } from "buffer";
 import loader from "../assets/loader.gif";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
-import { setAvatarRoute } from "../api/index";
+import { setAvatarRoute, getAvatarRoute } from "../api/index";
 export default function SetAvatar() {
-  const api = `https://api.multiavatar.com/`;
   const navigate = useNavigate();
   const [avatars, setAvatars] = useState([]); //随机头像数组
   const [isLoading, setIsLoading] = useState(true); //
@@ -46,32 +44,29 @@ export default function SetAvatar() {
   useEffect(() => {
     async function func() {
       console.log("come in hook");
-      if (!localStorage.getItem("profile")) navigate("/login");
+      if (!localStorage.getItem("profile")) {
+        navigate("/login");
+      }
       const data = [];
       for (let i = 0; i < 4; i++) {
         await axios
-          .get(
-            `${api}/${Math.round(Math.random() * 1000)}?apikey=${
-              process.env.REACT_APP_MULTIAVATAR_APIKEY
-            }`
-          )
+          .get(`${getAvatarRoute}/${Math.round(Math.random() * 1000)}`)
           .then((res) => {
-            let image = res.data;
-            console.log("image ", image);
-            let buffer = Buffer.from(image);
-            data.push(buffer.toString("base64"));
+            let image = res.data.base64;
+            data.push(image);
           })
           .catch((err) => {
             console.log(err);
           });
       }
-      console.log("data ", data);
+      // console.log("data ", data);
       setAvatars(data);
       console.log("avatars ", avatars);
       setIsLoading(false);
     }
     func();
   }, []);
+
   return (
     <>
       {isLoading ? (

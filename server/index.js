@@ -8,12 +8,14 @@ require("dotenv").config();
 const messageRoutes = require("./routes/messages");
 const authRoutes = require("./routes/auth");
 const systemRoutes = require("./routes/system");
+const avatarRoutes = require("./routes/avatar");
 
 app.use(cors());
 app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/system", systemRoutes);
+app.use("/api/avatar", avatarRoutes);
 
 mongoose
   .connect(process.env.MONGO_URL, {
