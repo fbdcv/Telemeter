@@ -59,7 +59,7 @@ export default function ChatInput({ handleSendMsg }) {
 const Container = styled.div`
   display: grid;
   align-items: center;
-  grid-template-columns: 5% 95%;
+  grid-template-columns: 8% 95%;
   background-color: #080420;
   padding: 0 2rem;
   @media screen and (min-width: 720px) and (max-width: 1080px) {
@@ -153,6 +153,10 @@ const Container = styled.div`
       svg {
         font-size: 2rem;
         color: #fdfdfd;
+      }
+      &:active {
+        /* box-shadow: 3px 3px 5px 2px #3f17b0; */
+        border: 2px solid white;
       }
     }
   }

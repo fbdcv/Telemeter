@@ -35,8 +35,8 @@ const server = app.listen(process.env.PORT, () => {
 
 const io = socket(server, {
   cors: {
-    origin: "http://localhost:3000",
-    // origin: "*",
+    // origin: "http://localhost:3000",
+    origin: "*",
     credentials: true,
   },
   pingInterval: 10000, // 每隔 10 秒发送一个心跳包
@@ -51,41 +51,35 @@ io.on("connection", (socket) => {
   socket.on("add-user", (userId) => {
     onlineUsers.set(userId, socket.id);
   });
-  // console.log("------------------");
-  // for (let [key, value] of global.onlineUsers) {
-  //   console.log(`${key} = ${value}`);
-  // }
-  // console.log("------------------");
 
-  //服务器中转数据 data中有三个属性from,to,msg
+  //服务器中转消息数据 data中有三个属性
+  //{from(socket.id),to(String),msg(String)}
+  // {发送方，接受方，消息内容}
   socket.on("send-msg", (data) => {
     const sendUserSocket = onlineUsers.get(data.to);
-    //如果用户在线
     if (sendUserSocket) {
       socket.to(sendUserSocket).emit("msg-recieve", data);
     }
   });
+
+  //服务器中转系统通知 sysinfo中有三个属性
+  //{to(User._id),info(String),data(User)}
+  //{接受方，消息类型，数据体}
   socket.on("system_info", (sysinfo) => {
     const sendUserSocket = onlineUsers.get(sysinfo.to);
     const { info, data } = sysinfo;
-    // console.log("to", sysinfo.to);
-    // console.log("info", sysinfo.info);
-    // console.log("data", sysinfo.data);
-
-    //如果用户在线
     if (sendUserSocket) {
       socket.to(sendUserSocket).emit("system_info", { info, data });
     }
   });
+
+  //服务器中转接受好友响应 data中有三个属性
+  //{toName(String),toId(User._id),friend(User)}
+  //{接收响应方的名字，接收响应方的Id，好友数据}
   socket.on("befriends", (data) => {
     const { toId, toName, friend } = data;
     const sendUserSocket = onlineUsers.get(toId);
-    // console.log("toId ,toName", data);
-    //如果用户在线
     if (sendUserSocket) {
-      //通知客户端刷新好友列表
-      // console.log("通知客户端刷新好友列表");
-      // console.log("socket 中转friend ", friend);
       socket.to(sendUserSocket).emit("befriends", friend);
     }
   });

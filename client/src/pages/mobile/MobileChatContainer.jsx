@@ -363,6 +363,7 @@ const Container = styled.div`
         border-radius: 1rem;
       }
     }
+
     .message {
       display: flex;
       align-items: center;

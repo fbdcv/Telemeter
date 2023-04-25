@@ -16,6 +16,14 @@ import {
   notBeFriendsRoute,
 } from "../api/index";
 
+import Draggable from "react-draggable";
+
+import testMp4 from "../assets/1.mp4";
+
+import { TbExchange } from "react-icons/tb";
+
+import { ImPhoneHangUp } from "react-icons/im";
+
 const ChatContainer = ({ currentUser, currentChat, socket }) => {
   const [messages, setMessages] = useState([]); //存储聊天记录的数组
   const [arrivalMessage, setArrivalMessage] = useState(null); //接受socket传过来的数据
@@ -49,8 +57,8 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
           `${getFriendRequestRoute}/${currentUser.username}`
         );
         //打印响应信息
-        console.log("res", res);
-        console.log("res.data", res.data);
+        // console.log("res", res);
+        // console.log("res.data", res.data);
         //复用messages
         setMessages(res.data);
       } else {
@@ -73,7 +81,7 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
           console.log("socket在线");
           socket.current.on("system_info", (sysinfo) => {
             const { info, data } = sysinfo;
-            console.log("infor data ", sysinfo);
+            console.log("info data ", sysinfo);
             setArrivalMessage({ info, data });
           });
         }
@@ -205,6 +213,48 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
         </div>
       </div>
       <div className="chat-messages">
+        <Draggable
+          bounds={{
+            top: -35,
+            left: 0,
+            right: 850,
+            bottom: 380,
+          }}
+          // bounds="parent"
+          handle=".handle"
+        >
+          <div className="video-area">
+            {/* <h1>hello</h1> */}
+            <div className="video">
+              <video
+                // className="video1"
+                className="handle"
+                playsInline
+                muted
+                src={testMp4}
+                autoPlay
+              />
+              <Draggable bounds="parent">
+                <video
+                  className="video2"
+                  playsInline
+                  muted
+                  src={testMp4}
+                  autoPlay
+                />
+              </Draggable>
+            </div>
+            <div className="video-button">
+              <button>
+                <TbExchange />
+              </button>
+              <button>
+                <ImPhoneHangUp />
+              </button>
+            </div>
+          </div>
+        </Draggable>
+        {/* <VideoChat /> */}
         {messages.map((message) => {
           return (
             <div ref={scrollRef} key={uuidv4()}>
@@ -302,6 +352,57 @@ const Container = styled.div`
         background-color: #ffffff39;
         width: 0.1rem;
         border-radius: 1rem;
+      }
+    }
+    .video-area {
+      position: fixed;
+      background-color: #56368e;
+      width: 15vw;
+      height: 25vh;
+      border-radius: 0.8rem;
+      .video {
+        position: relative;
+        video:first-of-type {
+          /* 此处为选中div元素中的第一个video元素 */
+          width: 15vw;
+          height: 18vh;
+          border: 1px solid #56368e;
+          border-radius: 0.8rem;
+        }
+        .video2 {
+          position: absolute;
+          top: 12.5vh;
+          left: 11.2vw;
+          width: 25%;
+          height: 25%;
+          z-index: 1;
+          border: 1px solid white;
+        }
+      }
+      .video-button {
+        display: flex;
+        position: relative;
+        gap: 2rem;
+        top: 1rem;
+        left: 5rem;
+
+        button {
+          padding: 0.25rem 0.8rem;
+          border-radius: 0.5rem;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          background-color: #9a86f3;
+          border: none;
+          svg {
+            font-size: 1rem;
+            color: #fdfdfd;
+          }
+          &:active {
+            /* box-shadow: 3px 3px 5px 2px #3f17b0; */
+            border: 2px solid white;
+          }
+        }
       }
     }
     .message {
