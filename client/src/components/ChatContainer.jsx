@@ -24,10 +24,18 @@ import { TbExchange } from "react-icons/tb";
 
 import { ImPhoneHangUp } from "react-icons/im";
 
+import Peer from "simple-peer";
+
 const ChatContainer = ({ currentUser, currentChat, socket }) => {
   const [messages, setMessages] = useState([]); //存储聊天记录的数组
   const [arrivalMessage, setArrivalMessage] = useState(null); //接受socket传过来的数据
   const [runOne, setRunOne] = useState(false); //使客户端只启用一次监听
+  const [isShowVideo, SetIsShowVideo] = useState(false); //是否按下VideoChat按钮
+  // const [stream, setStream] = useState();
+  const myVideo = useRef();
+  const userVideo = useRef();
+  const connectionRef = useRef();
+  const [call, setCall] = useState({}); //记录对方的signal信息
 
   //一个变量
   const scrollRef = useRef();
@@ -87,13 +95,32 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
         }
       } else {
         if (socket.current) {
+          //监听文本数据
           socket.current.on("msg-recieve", (data) => {
             const { from, msg } = data;
             // console.log("from ", from);
-            console.log("currentChat._id ", currentChat._id); //这个东西
+            // console.log("currentChat._id ", currentChat._id);
             // console.log("from===currentChat._id ", from === currentChat._id);
             // if (from === currentChat._id)
-            setArrivalMessage({ fromSelf: false, message: msg, from });
+            setArrivalMessage({
+              fromSelf: false,
+              message: msg,
+              from,
+              type: "text",
+            });
+          });
+          //监听视频通话请求
+          socket.current.on("callUser", (data) => {
+            const { signal, from } = data;
+            setCall({ signal: signal });
+            // console.log("收到callUser socket");
+            console.log("signal", signal);
+            // console.log("from", from);
+
+            setArrivalMessage({
+              from,
+              type: "videoChat",
+            });
           });
         }
       }
@@ -111,6 +138,7 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
     } else {
       if (arrivalMessage && arrivalMessage.from === currentChat._id) {
         acceptBell.play();
+        console.log(" arrivalMessage", arrivalMessage);
         setMessages((prev) => [...prev, arrivalMessage]);
       }
     }
@@ -139,12 +167,144 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
       });
 
       const msgs = [...messages];
-      msgs.push({ fromSelf: true, message: msg });
+      msgs.push({ fromSelf: true, message: msg, type: "text" });
       setMessages(msgs);
     }
   };
 
-  const handleAccept = async (message) => {
+  const handlePushVideo = () => {
+    //显示video窗口
+    SetIsShowVideo(true);
+
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: true })
+      .then((currentStream) => {
+        myVideo.current.srcObject = currentStream;
+        const stream = currentStream;
+        //向对方发出callUser消息
+        const peer = new Peer({ initiator: true, trickle: false, stream });
+        console.log("stream", stream);
+        connectionRef.current = peer;
+
+        // Peer对象初始化后就会生成信令数据并触发signal事件，处理信令数据
+        peer.on("signal", (data) => {
+          socket.current.emit("callUser", {
+            userToCall: currentChat._id,
+            signalData: data,
+            from: currentUser._id,
+            // name,
+          });
+        });
+
+        peer.on("stream", (currentStream) => {
+          userVideo.current.srcObject = currentStream;
+        });
+
+        //等待answerUser响应
+        socket.current.on("callAccepted", (signal) => {
+          // 对方接受了通讯请求
+          // setCallAccepted(true);
+          //设置获取到的对方的信令数据
+          console.log("设置获取到的对方的信令数据");
+          console.log("signal2", signal);
+          peer.signal(signal);
+        });
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  };
+
+  // useEffect(() => {
+  //   //获取当前音视频流的权限并获取流
+  //   if (isShowVideo) {
+  //     navigator.mediaDevices
+  //       .getUserMedia({ video: true, audio: true })
+  //       .then((currentStream) => {
+  //         setStream(currentStream);
+  //         myVideo.current.srcObject = currentStream;
+  //       })
+  //       .catch((error) => {
+  //         console.log(error);
+  //       });
+  //   }
+  // }, [isShowVideo]);
+
+  const handleExchange = () => {
+    // 获取两个video元素
+    const firstVideo = myVideo.current;
+    const secondVideo = userVideo.current;
+
+    // 保存它们的src属性值
+    const firstSrc = firstVideo.srcObject;
+    const secondSrc = secondVideo.srcObject;
+
+    // 交换它们的src属性值
+    firstVideo.srcObject = secondSrc;
+    secondVideo.srcObject = firstSrc;
+  };
+
+  const handleHangup = () => {
+    // 销毁当前的peer
+    if (connectionRef.current) {
+      if (connectionRef.current.connected) {
+        // 关闭链接并释放资源
+        connectionRef.current.destroy();
+      }
+    } else {
+      console.error("peer is not defined");
+    }
+
+    //关闭video窗口
+    SetIsShowVideo(false);
+  };
+
+  const handleAcceptVideoChat = () => {
+    if (connectionRef.current) {
+      //当前正在通话，不能接受视频视频请求
+      alert("当前正在通话，不能接受视频视频请求");
+    } else {
+      //显示video窗口
+      SetIsShowVideo(true);
+
+      navigator.mediaDevices
+        .getUserMedia({ video: true, audio: true })
+        .then((currentStream) => {
+          myVideo.current.srcObject = currentStream;
+
+          const stream = currentStream;
+          console.log("stream", stream);
+          const peer = new Peer({ initiator: false, trickle: false, stream });
+          connectionRef.current = peer;
+
+          //向发送方发送信令数据
+          peer.on("signal", (data) => {
+            console.log("向发送方发送信令数据");
+            socket.current.emit("answerCall", {
+              signal: data,
+              to: currentChat._id,
+            });
+          });
+
+          //一旦双方建立连接，对方发送流，就会触发stream事件
+          peer.on("stream", (currentStream) => {
+            //存储对方的流
+            console.log("存储了对方的流");
+            userVideo.current.srcObject = currentStream;
+          });
+
+          //设置获取到的对方的信令数据
+          peer.signal(call.signal);
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    }
+  };
+
+  const handleRejectVideoChat = () => {};
+
+  const handleAcceptBeFriends = async (message) => {
     //发送HTTP请求到数据库
     //将目标用户注册为好友
     //删除system数据库中的相关数据
@@ -174,7 +334,7 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
     }
   };
 
-  const handleReject = async (message) => {
+  const handleRejectBeFriends = async (message) => {
     //发送HTTP请求到数据库
     //删除system数据库中的相关数据
     //使用toast显示操作成功
@@ -213,51 +373,57 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
         </div>
       </div>
       <div className="chat-messages">
-        <Draggable
-          bounds={{
-            top: -35,
-            left: 0,
-            right: 850,
-            bottom: 380,
-          }}
-          // bounds="parent"
-          handle=".handle"
-        >
-          <div className="video-area">
-            {/* <h1>hello</h1> */}
-            <div className="video">
-              <video
-                // className="video1"
-                className="handle"
-                playsInline
-                muted
-                src={testMp4}
-                autoPlay
-              />
-              <Draggable bounds="parent">
+        {isShowVideo && (
+          <Draggable
+            bounds={{
+              top: -35,
+              left: 0,
+              right: 850,
+              bottom: 380,
+            }}
+            // bounds="parent"
+            handle=".handle"
+          >
+            <div className="video-area">
+              {/* <h1>hello</h1> */}
+              <div className="video">
                 <video
-                  className="video2"
+                  // className="video1"
+                  className="handle"
                   playsInline
                   muted
-                  src={testMp4}
+                  // src={testMp4}
+                  ref={userVideo}
                   autoPlay
                 />
-              </Draggable>
+                <Draggable bounds="parent">
+                  <video
+                    className="video2"
+                    playsInline
+                    muted
+                    // src={testMp4}
+                    ref={myVideo}
+                    autoPlay
+                  />
+                </Draggable>
+              </div>
+              <div className="video-button">
+                <button onClick={handleExchange}>
+                  <TbExchange />
+                </button>
+                <button onClick={handleHangup}>
+                  <ImPhoneHangUp />
+                </button>
+              </div>
             </div>
-            <div className="video-button">
-              <button>
-                <TbExchange />
-              </button>
-              <button>
-                <ImPhoneHangUp />
-              </button>
-            </div>
-          </div>
-        </Draggable>
+          </Draggable>
+        )}
+
         {/* <VideoChat /> */}
         {messages.map((message) => {
           return (
             <div ref={scrollRef} key={uuidv4()}>
+              {/* 如果用户是系统通知 */}
               {currentChat.username === "SystemInfo" &&
                 message.info === "friendRequest" && (
                   <div className="friend-request-box">
@@ -274,13 +440,13 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
                     <div className="buttons">
                       <button
                         className="accept"
-                        onClick={() => handleAccept(message)}
+                        onClick={() => handleAcceptBeFriends(message)}
                       >
                         接受
                       </button>
                       <button
                         className="reject"
-                        onClick={() => handleReject(message)}
+                        onClick={() => handleRejectBeFriends(message)}
                       >
                         拒绝
                       </button>
@@ -289,23 +455,38 @@ const ChatContainer = ({ currentUser, currentChat, socket }) => {
                 )}
               {currentChat.username === "SystemInfo" &&
                 message.info !== "friendRequest" && <div></div>}
-              {currentChat.username !== "SystemInfo" && (
-                <div
-                  className={`message ${
-                    message.fromSelf ? "sended" : "recieved"
-                  }`}
-                >
-                  <div className="content ">
-                    <p>{message.message}</p>
+              {/* 如果用户不是系统通知 */}
+              {currentChat.username !== "SystemInfo" &&
+                message.type === "text" && (
+                  <div
+                    className={`message ${
+                      message.fromSelf ? "sended" : "recieved"
+                    }`}
+                  >
+                    <div className="content ">
+                      <p>{message.message}</p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              {currentChat.username !== "SystemInfo" &&
+                message.type === "videoChat" && (
+                  <div className="video-chat-box">
+                    <h1> 对方发来了视频通话</h1>
+                    <div className="button-box">
+                      <button onClick={handleAcceptVideoChat}>接受</button>
+                      <button onClick={handleRejectVideoChat}>拒绝</button>
+                    </div>
+                  </div>
+                )}
             </div>
           );
         })}
       </div>
 
-      <ChatInput handleSendMsg={handleSendMsg} />
+      <ChatInput
+        handleSendMsg={handleSendMsg}
+        handlePushVideo={handlePushVideo}
+      />
       <ToastContainer />
     </Container>
   );
@@ -382,9 +563,9 @@ const Container = styled.div`
       .video-button {
         display: flex;
         position: relative;
-        gap: 2rem;
-        top: 1rem;
-        left: 5rem;
+        gap: 2vh;
+        top: 3vh;
+        left: 4vw;
 
         button {
           padding: 0.25rem 0.8rem;
@@ -486,6 +667,26 @@ const Container = styled.div`
             background-color: gray;
             color: white;
           }
+        }
+      }
+    }
+    .video-chat-box {
+      width: 60%;
+      margin: 0 auto;
+      border: 1px solid #163bcb;
+      background-color: #4f04ff21;
+      padding: 20px;
+      button {
+        padding: 10px;
+        margin-left: 10px;
+        background-color: #fff;
+        border-radius: 5px;
+        border: 1px solid #aaa;
+        color: #333;
+        cursor: pointer;
+        &:active {
+          background-color: gray;
+          color: white;
         }
       }
     }

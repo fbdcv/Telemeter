@@ -83,4 +83,21 @@ io.on("connection", (socket) => {
       socket.to(sendUserSocket).emit("befriends", friend);
     }
   });
+
+  //转发发送方的信令数据和其他信息
+  //{ userToCall(User._id), signalData(signal), from(User._id) }
+  socket.on("callUser", ({ userToCall, signalData, from }) => {
+    // console.log("userToCall", userToCall);
+    // console.log("signalData", signalData);
+    // console.log(" from", from);
+    const sendUserSocket = onlineUsers.get(userToCall);
+    io.to(sendUserSocket).emit("callUser", { signal: signalData, from });
+  });
+
+  //转发接受方的信令数据
+  //{to(User._id),signal(signal)}
+  socket.on("answerCall", (data) => {
+    const sendUserSocket = onlineUsers.get(data.to);
+    io.to(sendUserSocket).emit("callAccepted", data.signal);
+  });
 });

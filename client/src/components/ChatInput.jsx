@@ -5,7 +5,7 @@ import { BsFillCameraVideoFill } from "react-icons/bs";
 import styled from "styled-components";
 import Picker from "emoji-picker-react";
 
-export default function ChatInput({ handleSendMsg }) {
+export default function ChatInput({ handleSendMsg, handlePushVideo }) {
   const [msg, setMsg] = useState(""); //输入框的聊天消息
   const [showEmojiPicker, setShowEmojiPicker] = useState(false); //是否点击了笑脸表情按钮
 
@@ -48,7 +48,7 @@ export default function ChatInput({ handleSendMsg }) {
         <button type="submit">
           <IoMdSend />
         </button>
-        <button>
+        <button onClick={() => handlePushVideo()}>
           <BsFillCameraVideoFill />
         </button>
       </form>
