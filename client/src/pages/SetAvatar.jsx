@@ -48,7 +48,13 @@ export default function SetAvatar() {
         navigate("/login");
       }
       const data = [];
-      for (let i = 0; i < 4; i++) {
+      let length = window.matchMedia("(max-width: 500px)").matches
+        ? 2
+        : window.matchMedia("(max-width: 1280px)").matches
+        ? 3
+        : 4;
+
+      for (let i = 0; i < length; i++) {
         await axios
           .get(`${getAvatarRoute}/${Math.round(Math.random() * 1000)}`)
           .then((res) => {

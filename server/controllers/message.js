@@ -14,6 +14,7 @@ module.exports.getMessages = async (req, res, next) => {
       return {
         fromSelf: msg.sender.toString() === from,
         message: msg.message.text,
+        type: "text",
       };
     });
     res.json(projectedMessages);

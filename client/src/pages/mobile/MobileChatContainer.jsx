@@ -19,19 +19,33 @@ import {
   notBeFriendsRoute,
 } from "../../api/index";
 
+import Draggable from "react-draggable";
+
+import testMp4 from "../../assets/1.mp4";
+
+import { TbExchange } from "react-icons/tb";
+
+import { ImPhoneHangUp } from "react-icons/im";
+
+import Peer from "simple-peer";
+
 const MobileChatContainer = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // const [currentUser, setCurrentUser] = useState(undefined);
-  // const [currentChat, setCurrentChat] = useState(undefined);
   const [currentUser, setCurrentUser] = useState(location.state?.currentUser);
   const [currentChat, setCurrentChat] = useState(location.state?.currentChat);
-
   const socket = io(host);
 
   const [messages, setMessages] = useState([]); //存储聊天记录的数组
   const [arrivalMessage, setArrivalMessage] = useState(null); //接受socket传过来的数据
+  const [runOne, setRunOne] = useState(false); //使客户端只启用一次监听
+  const [isShowVideo, SetIsShowVideo] = useState(false); //是否按下VideoChat按钮
+
+  const myVideo = useRef();
+  const userVideo = useRef();
+  const connectionRef = useRef();
+  const [call, setCall] = useState({}); //记录对方的signal信息
 
   //一个变量
   const scrollRef = useRef();
@@ -82,19 +96,8 @@ const MobileChatContainer = () => {
       const data = await JSON.parse(localStorage.getItem("profile"));
       if (!data) {
         navigate("/");
-      } else if (!window.matchMedia("(max-width: 768px)").matches) {
+      } else if (!window.matchMedia("(max-width: 1280px)").matches) {
         navigate("/");
-      } else {
-        //在服务器存储socket的id，便于转发
-        // socket.emit("add-user", data._id);
-        // console.log(`${data._id} = ${socket.id}`);
-        // setCurrentUser(location.state.currentUser);
-        // setCurrentChat(location.state.currentChat);
-        // console.log("state ", location.state);
-        // console.log("location", location);
-        // return () => {
-        //   socket.disconnect();
-        // };
       }
     }
     func();
@@ -121,29 +124,40 @@ const MobileChatContainer = () => {
       }
     }
     func();
-  }, [currentUser]);
+  }, [currentChat]);
 
   //监听数据并保证只启用一个监听
   useEffect(() => {
-    // console.log("islistern...");
-
-    if (currentChat?.username === "SystemInfo") {
-      if (socket) {
-        // console.log("socket在线 socket", socket);
-        socket.on("system_info", (sysinfo) => {
-          const { info, data } = sysinfo;
-          // console.log("infor data ", sysinfo);
-          setArrivalMessage({ info, data });
+    if (!runOne) {
+      if (currentChat?.username === "SystemInfo") {
+        if (socket) {
+          socket.on("system_info", (sysinfo) => {
+            const { info, data } = sysinfo;
+            setArrivalMessage({ info, data });
+          });
+        }
+      } else {
+        socket.on("msg-recieve", (data) => {
+          const { msg } = data;
+          setArrivalMessage({ fromSelf: false, message: msg, type: "text" });
+        });
+        socket.on("callUser", (data) => {
+          const { signal, from } = data;
+          setCall({ signal: signal });
+          setArrivalMessage({
+            from,
+            type: "videoChat",
+          });
+        });
+        socket.on("callAccepted", (signal) => {
+          console.log("设置获取到的对方的信令数据");
+          console.log("signal2", signal);
+          connectionRef.current.signal(signal);
         });
       }
-    } else {
-      socket.on("msg-recieve", (data) => {
-        const { msg } = data;
-        // console.log("currentChat._id ", currentChat._id);
-        setArrivalMessage({ fromSelf: false, message: msg });
-      });
+      setRunOne(true);
     }
-  }, [currentUser]);
+  }, [currentChat]);
 
   //如果通过socket获取到了数据，就将其追加到messages状态
   useEffect(() => {
@@ -155,6 +169,7 @@ const MobileChatContainer = () => {
     } else {
       if (arrivalMessage) {
         acceptBell.play();
+        console.log(" arrivalMessage", arrivalMessage);
         setMessages((prev) => [...prev, arrivalMessage]);
       }
     }
@@ -183,11 +198,140 @@ const MobileChatContainer = () => {
       });
 
       const msgs = [...messages];
-      msgs.push({ fromSelf: true, message: msg });
+      msgs.push({ fromSelf: true, message: msg, type: "text" });
       setMessages(msgs);
     }
   };
-  const handleAccept = async (message) => {
+
+  const handlePushVideo = () => {
+    if (!isShowVideo) {
+      //显示video窗口
+      SetIsShowVideo(true);
+
+      navigator.mediaDevices
+        .getUserMedia({ video: true, audio: true })
+        .then((currentStream) => {
+          myVideo.current.srcObject = currentStream;
+          const stream = currentStream;
+          //向对方发出callUser消息
+          const peer = new Peer({ initiator: true, trickle: false, stream });
+          console.log("stream", stream);
+
+          // Peer对象初始化后就会生成信令数据并触发signal事件，处理信令数据
+          peer.on("signal", (data) => {
+            socket.emit("callUser", {
+              userToCall: currentChat._id,
+              signalData: data,
+              from: currentUser._id,
+              // name,
+            });
+          });
+
+          peer.on("stream", (currentStream) => {
+            userVideo.current.srcObject = currentStream;
+          });
+
+          // 监听 Simple-Peer 对象销毁事件，回调函数
+          peer.on("close", () => {
+            console.log("Peer destroyed");
+            peer.removeAllListeners(); //移除所有监听器
+            peer.destroy();
+          });
+          connectionRef.current = peer;
+
+          //等待answerUser响应
+          // socket.on("callAccepted", (signal) => {
+          //   //设置获取到的对方的信令数据
+          //   console.log("设置获取到的对方的信令数据");
+          //   console.log("signal2", signal);
+          //   peer.signal(signal);
+          // });
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    }
+  };
+
+  const handleExchange = () => {
+    // 获取两个video元素
+    const firstVideo = myVideo.current;
+    const secondVideo = userVideo.current;
+
+    // 保存它们的src属性值
+    const firstSrc = firstVideo.srcObject;
+    const secondSrc = secondVideo.srcObject;
+
+    // 交换它们的src属性值
+    firstVideo.srcObject = secondSrc;
+    secondVideo.srcObject = firstSrc;
+  };
+
+  const handleHangup = () => {
+    // 销毁当前的peer
+    if (connectionRef.current) {
+      // 销毁 Simple-Peer 对象
+
+      window.location.reload();
+    } else {
+      console.error("peer is not defined");
+    }
+
+    //关闭video窗口
+    SetIsShowVideo(false);
+  };
+
+  const handleAcceptVideoChat = () => {
+    if (connectionRef.current) {
+      //当前正在通话，不能接受视频视频请求
+      alert("当前正在通话，不能接受视频视频请求");
+    } else {
+      //显示video窗口
+      SetIsShowVideo(true);
+
+      navigator.mediaDevices
+        .getUserMedia({ video: true, audio: true })
+        .then((currentStream) => {
+          myVideo.current.srcObject = currentStream;
+
+          const stream = currentStream;
+          console.log("stream", stream);
+          const peer = new Peer({ initiator: false, trickle: false, stream });
+          //设置获取到的对方的信令数据
+          peer.signal(call.signal);
+
+          connectionRef.current = peer;
+          //向发送方发送信令数据
+          peer.on("signal", (data) => {
+            console.log("向发送方发送信令数据");
+            socket.emit("answerCall", {
+              signal: data,
+              to: currentChat._id,
+            });
+          });
+
+          //一旦双方建立连接，对方发送流，就会触发stream事件
+          peer.on("stream", (currentStream) => {
+            //存储对方的流
+            console.log("存储了对方的流");
+            userVideo.current.srcObject = currentStream;
+          });
+
+          // 监听 Simple-Peer 对象销毁事件，回调函数
+          peer.on("close", () => {
+            console.log("Peer destroyed");
+            peer.removeAllListeners(); //移除所有监听器
+          });
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    }
+  };
+
+  const handleRejectVideoChat = () => {};
+
+  const handleAcceptBeFriends = async (message) => {
     //发送HTTP请求到数据库
     //将目标用户注册为好友
     //删除system数据库中的相关数据
@@ -216,7 +360,7 @@ const MobileChatContainer = () => {
       }, 1500);
     }
   };
-  const handleReject = async (message) => {
+  const handleRejectBeFriends = async (message) => {
     //发送HTTP请求到数据库
     //删除system数据库中的相关数据
     //使用toast显示操作成功
@@ -242,7 +386,6 @@ const MobileChatContainer = () => {
   return (
     currentChat && (
       <Container>
-        {/* {console.log("location.state ", location.state)} */}
         <div className="chat-header">
           <div className="user-details">
             <div className="avatar">
@@ -257,9 +400,56 @@ const MobileChatContainer = () => {
           </div>
         </div>
         <div className="chat-messages">
+          {isShowVideo && (
+            <Draggable
+              bounds={{
+                top: 0,
+                left: 0,
+                right: 250,
+                bottom: 350,
+              }}
+              // bounds="parent"
+              handle=".handle"
+            >
+              <div className="video-area">
+                {/* <h1>hello</h1> */}
+                <div className="video">
+                  <video
+                    // className="video1"
+                    className="handle"
+                    playsInline
+                    muted
+                    // src={testMp4}
+                    ref={userVideo}
+                    autoPlay
+                  />
+                  <Draggable bounds="parent">
+                    <video
+                      className="video2"
+                      playsInline
+                      muted
+                      // src={testMp4}
+                      ref={myVideo}
+                      autoPlay
+                    />
+                  </Draggable>
+                </div>
+                <div className="video-button">
+                  <button onClick={handleHangup}>
+                    <ImPhoneHangUp />
+                  </button>
+                  <button onClick={handleExchange}>
+                    <TbExchange />
+                  </button>
+                </div>
+              </div>
+            </Draggable>
+          )}
+
           {messages.map((message) => {
             return (
               <div ref={scrollRef} key={uuidv4()}>
+                {/* 如果用户是系统通知 */}
                 {currentChat?.username === "SystemInfo" &&
                   message.info === "friendRequest" && (
                     <div className="friend-request-box">
@@ -278,13 +468,13 @@ const MobileChatContainer = () => {
                       <div className="buttons">
                         <button
                           className="accept"
-                          onClick={() => handleAccept(message)}
+                          onClick={() => handleAcceptBeFriends(message)}
                         >
                           接受
                         </button>
                         <button
                           className="reject"
-                          onClick={() => handleReject(message)}
+                          onClick={() => handleRejectBeFriends(message)}
                         >
                           拒绝
                         </button>
@@ -293,22 +483,34 @@ const MobileChatContainer = () => {
                   )}
                 {currentChat.username === "SystemInfo" &&
                   message.info !== "friendRequest" && <div></div>}
-                {currentChat.username !== "SystemInfo" && (
-                  <div
-                    className={`message ${
-                      message.fromSelf ? "sended" : "recieved"
-                    }`}
-                  >
-                    <div className="content ">
-                      <p>{message.message}</p>
+                {/* 如果用户不是系统通知 */}
+                {currentChat.username !== "SystemInfo" &&
+                  message.type === "text" && (
+                    <div
+                      className={`message ${
+                        message.fromSelf ? "sended" : "recieved"
+                      }`}
+                    >
+                      <div className="content ">
+                        <p>{message.message}</p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                {currentChat.username !== "SystemInfo" &&
+                  message.type === "videoChat" && (
+                    <div className="video-chat-box">
+                      <h1> 对方请求视频通话</h1>
+                      <button onClick={handleAcceptVideoChat}>接受</button>
+                    </div>
+                  )}
               </div>
             );
           })}
         </div>
-        <ChatInput handleSendMsg={handleSendMsg} />
+        <ChatInput
+          handleSendMsg={handleSendMsg}
+          handlePushVideo={handlePushVideo}
+        />
         <ToastContainer />
       </Container>
     )
@@ -363,7 +565,62 @@ const Container = styled.div`
         border-radius: 1rem;
       }
     }
+    .video-area {
+      position: fixed;
+      background-color: #56368e;
 
+      width: 15vw;
+      height: 25vh;
+      border-radius: 0.8rem;
+      .video {
+        position: relative;
+        video:first-of-type {
+          /* 此处为选中div元素中的第一个video元素 */
+          width: 15vw;
+          height: 18vh;
+          border: 1px solid #56368e;
+          border-radius: 0.8rem;
+        }
+        .video2 {
+          position: absolute;
+          top: 12.5vh;
+          left: 11.2vw;
+          width: 25%;
+          height: 25%;
+          z-index: 1;
+          border: 1px solid white;
+        }
+      }
+      .video-button {
+        display: flex;
+        flex-direction: row;
+        position: relative;
+        overflow: hidden;
+        justify-content: space-between;
+        width: 90%;
+        gap: 0vh;
+        top: 1vh;
+        left: 1vw;
+
+        button {
+          padding: 0.3rem 0.3rem;
+          border-radius: 0.5rem;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          background-color: #9a86f3;
+          border: none;
+          svg {
+            font-size: 1rem;
+            color: #fdfdfd;
+          }
+          &:active {
+            /* box-shadow: 3px 3px 5px 2px #3f17b0; */
+            border: 2px solid white;
+          }
+        }
+      }
+    }
     .message {
       display: flex;
       align-items: center;
@@ -445,6 +702,34 @@ const Container = styled.div`
             background-color: gray;
             color: white;
           }
+        }
+      }
+    }
+    .video-chat-box {
+      width: 60%;
+      margin: 0 auto;
+      border: 1px solid #aaa;
+      background-color: #4f04ff21;
+      border-radius: 2px;
+      padding: 20px;
+      display: flex;
+      flex-direction: row;
+      gap: 1vw;
+      justify-content: space-between;
+      h1 {
+        color: #fff;
+      }
+      button {
+        padding: 10px;
+        margin-left: 10px;
+        background-color: #fff;
+        border-radius: 5px;
+        border: 1px solid #aaa;
+        color: #333;
+        cursor: pointer;
+        &:active {
+          background-color: gray;
+          color: white;
         }
       }
     }

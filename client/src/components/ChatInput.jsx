@@ -59,11 +59,11 @@ export default function ChatInput({ handleSendMsg, handlePushVideo }) {
 const Container = styled.div`
   display: grid;
   align-items: center;
-  grid-template-columns: 8% 95%;
+  grid-template-columns: 8% 93%;
   background-color: #080420;
   padding: 0 2rem;
   @media screen and (min-width: 720px) and (max-width: 1080px) {
-    padding: 0 1rem;
+    padding: 0 2rem;
     gap: 1rem;
   }
   .button-container {

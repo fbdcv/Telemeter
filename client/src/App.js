@@ -16,7 +16,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/setAvatar" element={<SetAvatar />} />
         <Route path="/MobileChatContainer" element={<MobileChatContainer />} />
-        {window.matchMedia("(max-width: 768px)").matches ? (
+        {window.matchMedia("(max-width: 1280px)").matches ? (
           // mobile
           <Route path="/" element={<MobileChat />} />
         ) : (

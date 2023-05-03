@@ -52,6 +52,12 @@ io.on("connection", (socket) => {
     onlineUsers.set(userId, socket.id);
   });
 
+  console.log("---------onlineUsers-----------");
+  onlineUsers.forEach((value, key) => {
+    console.log(`${key} = ${value}`);
+  });
+  console.log("-------------------------------");
+
   //服务器中转消息数据 data中有三个属性
   //{from(socket.id),to(String),msg(String)}
   // {发送方，接受方，消息内容}
@@ -97,7 +103,10 @@ io.on("connection", (socket) => {
   //转发接受方的信令数据
   //{to(User._id),signal(signal)}
   socket.on("answerCall", (data) => {
+    console.log("answerCall");
+    console.log("data.to", data.to);
     const sendUserSocket = onlineUsers.get(data.to);
+    console.log("sendUserSocket", sendUserSocket);
     io.to(sendUserSocket).emit("callAccepted", data.signal);
   });
 });

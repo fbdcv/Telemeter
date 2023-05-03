@@ -14,7 +14,7 @@ export default function Welcome() {
   return (
     <Container>
       {/* <img src={Robot} alt="" /> */}
-      <img src={Partycrab} alt="" />
+      <img src={Robot} alt="" />
 
       <h1>
         Welcome, <span>{userName}!</span>
