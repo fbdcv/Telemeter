@@ -1,10 +1,22 @@
 const User = require("../models/users");
 const System = require("../models/system");
 const bcryptjs = require("bcryptjs");
+const redis = require("redis");
 
 module.exports.register = async (req, res, next) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, captcha } = req.body;
+
+    const redisClient = redis.createClient();
+    await redisClient.connect(process.env.REDIS_POST, process.env.REDIS_HOST);
+    const trueCaptcha = await redisClient.get(`telemeter:${email}`);
+    await redisClient.disconnect();
+    if (captcha !== trueCaptcha) {
+      return res.json({
+        msg: "The captcha was vailded",
+        status: false,
+      });
+    }
     if (username === "SystemInfo") {
       return res.json({
         msg: "Username not could be SystemInfo",

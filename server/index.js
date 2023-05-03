@@ -9,6 +9,7 @@ const messageRoutes = require("./routes/messages");
 const authRoutes = require("./routes/auth");
 const systemRoutes = require("./routes/system");
 const avatarRoutes = require("./routes/avatar");
+const captchaRoutes = require("./routes/captcha");
 
 app.use(cors());
 app.use(express.json());
@@ -16,6 +17,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/system", systemRoutes);
 app.use("/api/avatar", avatarRoutes);
+app.use("/api/captcha", captchaRoutes);
 
 mongoose
   .connect(process.env.MONGO_URL, {

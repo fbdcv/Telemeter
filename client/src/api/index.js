@@ -16,3 +16,5 @@ export const beFriendsRoute = `${host}/api/auth/beFriends`;
 export const notBeFriendsRoute = `${host}/api/auth/notBeFriends`;
 
 export const getAvatarRoute = `${host}/api/avatar/getavatar`;
+
+export const sendCaptchaRoute = `${host}/api/captcha/sendCaptcha`;

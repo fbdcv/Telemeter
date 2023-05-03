@@ -5,9 +5,10 @@ import { useNavigate, Link } from "react-router-dom";
 import Logo from "../assets/logo.svg";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { registerRoute } from "../api/index";
+import { registerRoute, sendCaptchaRoute } from "../api/index";
 
 export default function Register() {
+  const [timeStamp, setTimeStamp] = useState(0);
   const navigate = useNavigate();
   const toastOptions = {
     position: "bottom-right",
@@ -21,6 +22,7 @@ export default function Register() {
     email: "",
     password: "",
     confirmPassword: "",
+    captcha: "",
   });
 
   useEffect(() => {
@@ -64,12 +66,13 @@ export default function Register() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (handleValidation()) {
-      const { email, username, password } = values;
-      console.log(values);
+      const { email, username, password, captcha } = values;
+      // console.log(values);
       const { data } = await axios.post(registerRoute, {
         username,
         email,
         password,
+        captcha,
       });
 
       if (data.status === false) {
@@ -80,6 +83,26 @@ export default function Register() {
         console.log("register ", data);
         navigate("/");
       }
+    }
+  };
+
+  const sendCaptcha = async (event) => {
+    event.preventDefault();
+    const timeStampNow = Date.now();
+    if (timeStampNow - timeStamp > 60000) {
+      await axios.post(`${sendCaptchaRoute}`, {
+        email: values.email,
+      });
+
+      setTimeStamp(timeStampNow);
+      toast.success("邮件发送成功", toastOptions);
+    } else {
+      toast.error(
+        `操作太频繁了,${
+          60 - Math.ceil((timeStampNow - timeStamp) / 1000)
+        }s之后再试吧`,
+        toastOptions
+      );
     }
   };
 
@@ -103,6 +126,18 @@ export default function Register() {
             name="email"
             onChange={(e) => handleChange(e)}
           />
+          <div className="Captcha-area">
+            <input
+              type="Captcha"
+              placeholder="Captcha"
+              name="captcha"
+              onChange={(e) => handleChange(e)}
+            />
+            <button type="captcha" onClick={(e) => sendCaptcha(e)}>
+              Send Captcha
+            </button>
+          </div>
+
           <input
             type="password"
             placeholder="Password"
@@ -191,6 +226,16 @@ const FormContainer = styled.div`
       color: #4e0eff;
       text-decoration: none;
       font-weight: bold;
+    }
+  }
+  .Captcha-area {
+    display: flex;
+    justify-content: space-between;
+    input {
+      width: 45%;
+    }
+    button {
+      width: 45%;
     }
   }
 `;
